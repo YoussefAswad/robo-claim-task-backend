@@ -48,7 +48,7 @@ export class UploadController {
           }),
           new FileTypeValidator({
             fileType: RegExp(
-              'application/pdf|text/csv|application/vnd.ms-excel',
+              'application/pdf|text/csv|application/vnd.ms-excel|application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             ),
           }),
         ],

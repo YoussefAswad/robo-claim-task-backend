@@ -27,12 +27,18 @@ export class DocumentConsumer extends WorkerHost {
       fileId: job.data.id,
     });
 
+    // wait for 5 seconds
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+
     try {
       console.log('Processing document', job.data);
 
       const { mimeType } = job.data;
 
       await this.filesRepository.changeStatus(job.data.id, 'processing');
+
+      // simulate processing time 1 minute
+      // await new Promise((resolve) => setTimeout(resolve, 60000));
 
       const fileStream = await this.storage.getDisk().getBuffer(job.data.id);
 
@@ -42,6 +48,7 @@ export class DocumentConsumer extends WorkerHost {
           data = await this.processPdf(job, fileStream.content);
           break;
         case 'application/vnd.ms-excel':
+        case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
           data = await this.processExcel(job, fileStream.content);
           break;
         case 'text/csv':
@@ -90,6 +97,7 @@ export class DocumentConsumer extends WorkerHost {
       fileId: job.data.id,
     });
 
+    await new Promise((resolve) => setTimeout(resolve, 5000));
     return data;
   }
 
@@ -129,6 +137,7 @@ export class DocumentConsumer extends WorkerHost {
         fileId: job.data.id,
       });
       sheetNumber++;
+      await new Promise((resolve) => setTimeout(resolve, 5000));
     }
 
     await this.logsRepository.info({
@@ -136,6 +145,8 @@ export class DocumentConsumer extends WorkerHost {
       action: `Document ${job.data.id} processed all sheets`,
       fileId: job.data.id,
     });
+
+    await new Promise((resolve) => setTimeout(resolve, 5000));
 
     return data;
   }
@@ -189,6 +200,7 @@ export class DocumentConsumer extends WorkerHost {
         stage: `Processing page ${i + 1} of ${pageCount}`,
         fileId: job.data.id,
       });
+      await new Promise((resolve) => setTimeout(resolve, 5000));
     }
 
     await this.logsRepository.info({
@@ -197,6 +209,7 @@ export class DocumentConsumer extends WorkerHost {
       fileId: job.data.id,
     });
 
+    await new Promise((resolve) => setTimeout(resolve, 5000));
     return data;
   }
 }
