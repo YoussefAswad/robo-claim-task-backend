@@ -5,6 +5,7 @@ import { DocumentConsumer } from './documents.consumer';
 import { DocumentsProducer } from './documents.producer';
 import { FileRepositoryModule } from 'src/database/file-repository/file-repository.module';
 import { DocumentsListiner } from './documents.listener';
+import { LogsRepositoryModule } from 'src/database/logs-repository/logs-repository.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { DocumentsListiner } from './documents.listener';
       name: Queues.DOCUMENT,
     }),
     FileRepositoryModule,
+    LogsRepositoryModule,
   ],
   providers: [DocumentConsumer, DocumentsProducer, DocumentsListiner],
   exports: [DocumentsProducer],

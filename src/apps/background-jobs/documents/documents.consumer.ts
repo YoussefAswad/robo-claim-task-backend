@@ -7,11 +7,13 @@ import { StorageService } from '@codebrew/nestjs-storage';
 import { FileRepositoryService } from 'src/database/file-repository/file-repository.service';
 // import Tesseract from 'tesseract.js';
 import Papa from 'papaparse';
+import { LogsRepositoryService } from 'src/database/logs-repository/logs-repository.service';
 
 @Processor(Queues.DOCUMENT)
 export class DocumentConsumer extends WorkerHost {
   @Inject() private readonly storage: StorageService;
   @Inject() private readonly filesRepository: FileRepositoryService;
+  @Inject() private readonly logsRepository: LogsRepositoryService;
 
   async process(job: Job<DocumentData, any, string>): Promise<any> {
     job.updateProgress({
@@ -19,6 +21,12 @@ export class DocumentConsumer extends WorkerHost {
       stage: 'Started processing',
       fileId: job.data.id,
     });
+    await this.logsRepository.info({
+      userId: job.data.userId,
+      action: `Document ${job.data.id} processing started`,
+      fileId: job.data.id,
+    });
+
     try {
       console.log('Processing document', job.data);
 
@@ -27,28 +35,36 @@ export class DocumentConsumer extends WorkerHost {
       await this.filesRepository.changeStatus(job.data.id, 'processing');
 
       // simulate processing time 1 minute
-      await new Promise((resolve) => setTimeout(resolve, 60000));
+      // await new Promise((resolve) => setTimeout(resolve, 60000));
 
       const fileStream = await this.storage.getDisk().getBuffer(job.data.id);
 
+      let data: any;
       switch (mimeType) {
         case 'application/pdf':
-          await this.processPdf(job, fileStream.content);
+          data = await this.processPdf(job, fileStream.content);
           break;
         case 'application/vnd.ms-excel':
-          await this.processExcel(job, fileStream.content);
+          data = await this.processExcel(job, fileStream.content);
           break;
         case 'text/csv':
-          await this.processCsv(job, fileStream.content);
+          data = await this.processCsv(job, fileStream.content);
           break;
         default:
           await this.filesRepository.changeStatus(job.data.id, 'failed');
           throw new Error('Unsupported file type');
       }
-      console.log('Finished processing document', job.data);
+
+      await this.filesRepository.addData(job.data.id, data);
 
       return job.data;
     } catch (e) {
+      await this.logsRepository.error({
+        userId: job.data.userId,
+        action: `Document ${job.data.id} processing failed`,
+        fileId: job.data.id,
+      });
+
       await this.filesRepository.changeStatus(job.data.id, 'failed', e.message);
       throw e;
     }
@@ -57,20 +73,38 @@ export class DocumentConsumer extends WorkerHost {
     job: Job<DocumentData, any, string>,
     fileStream: Buffer,
   ) {
+    await this.logsRepository.info({
+      userId: job.data.userId,
+      action: `Document ${job.data.id} processing CSV`,
+      fileId: job.data.id,
+    });
     console.log('Processing CSV');
     const data = Papa.parse(fileStream.toString());
-    await this.filesRepository.addData(job.data.id, data);
+
+    await this.logsRepository.info({
+      userId: job.data.userId,
+      action: `Document ${job.data.id} processed CSV`,
+      fileId: job.data.id,
+    });
+
     await job.updateProgress({
       progress: 100,
       stage: 'Finished processing',
       fileId: job.data.id,
     });
+    return data;
   }
 
   private async processExcel(
     job: Job<DocumentData, any, string>,
     fileStream: Buffer,
   ) {
+    await this.logsRepository.info({
+      userId: job.data.userId,
+      action: `Document ${job.data.id} processing Excel`,
+      fileId: job.data.id,
+    });
+
     const XLSX = await import('xlsx');
     console.log('Processing Excel');
 
@@ -83,6 +117,12 @@ export class DocumentConsumer extends WorkerHost {
       const sheetData = XLSX.utils.sheet_to_json(sheet);
       data.push(sheetData);
 
+      await this.logsRepository.info({
+        userId: job.data.userId,
+        action: `Document ${job.data.id} processed sheet ${sheetName}`,
+        fileId: job.data.id,
+      });
+
       const progress =
         ((data.length + 1) / workbook.SheetNames.length) * 100 - 10;
       await job.updateProgress({
@@ -92,18 +132,31 @@ export class DocumentConsumer extends WorkerHost {
       });
     }
 
-    await this.filesRepository.addData(job.data.id, data);
+    await this.logsRepository.info({
+      userId: job.data.userId,
+      action: `Document ${job.data.id} processed all sheets`,
+      fileId: job.data.id,
+    });
+
     await job.updateProgress({
       progress: 100,
       stage: 'Finished processing',
       fileId: job.data.id,
     });
+
+    return data;
   }
 
   private async processPdf(
     job: Job<DocumentData, any, string>,
     fileStream: Buffer,
   ) {
+    await this.logsRepository.info({
+      userId: job.data.userId,
+      action: `Document ${job.data.id} processing PDF`,
+      fileId: job.data.id,
+    });
+
     const mupdfjs = await import('mupdf/mupdfjs');
 
     console.log('Processing PDF');
@@ -126,6 +179,12 @@ export class DocumentConsumer extends WorkerHost {
 
       data.push({ text });
 
+      await this.logsRepository.info({
+        userId: job.data.userId,
+        action: `Document ${job.data.id} processed page ${i + 1}`,
+        fileId: job.data.id,
+      });
+
       // for (const { image } of imageStack) {
       //   const pixmap = image.toPixmap();
       //   // const imageText = await Tesseract.recognize(pixmap, 'eng');
@@ -138,11 +197,18 @@ export class DocumentConsumer extends WorkerHost {
         fileId: job.data.id,
       });
     }
-    await this.filesRepository.addData(job.data.id, data);
+
+    await this.logsRepository.info({
+      userId: job.data.userId,
+      action: `Document ${job.data.id} processed all pages`,
+      fileId: job.data.id,
+    });
+
     await job.updateProgress({
       progress: 100,
       stage: 'Finished processing',
       fileId: job.data.id,
     });
+    return data;
   }
 }

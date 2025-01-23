@@ -4,6 +4,7 @@ import { FileRepositoryService } from 'src/database/file-repository/file-reposit
 import { DocumentsProducer } from '../background-jobs/documents/documents.producer';
 import { UserRepositoryService } from 'src/database/user-repository/user-repository.service';
 import crypto from 'node:crypto';
+import { LogsRepositoryService } from 'src/database/logs-repository/logs-repository.service';
 
 export type FileUploadStatus = 'failed' | 'duplicate' | 'success';
 
@@ -14,13 +15,19 @@ export class UploadService {
     private readonly fileRepository: FileRepositoryService,
     private readonly documentsProducer: DocumentsProducer,
     private readonly userRepository: UserRepositoryService,
+    private readonly logsRepository: LogsRepositoryService,
   ) {}
 
   private async saveFile(
     file: Express.Multer.File,
     userId: number,
   ): Promise<FileUploadStatus> {
-    if (await this.fileRepository.checkExists(file.buffer)) {
+    if (await this.fileRepository.checkExists(userId, file.buffer)) {
+      await this.logsRepository.warning({
+        userId,
+        action: `Duplicate file ${file.originalname}`,
+      });
+
       return 'duplicate';
     }
 
@@ -34,7 +41,13 @@ export class UploadService {
 
     await this.storage.getDisk().put(dbFile.id, file.buffer);
 
-    this.documentsProducer.addDocumentJob({
+    await this.logsRepository.info({
+      userId,
+      action: `File ${file.originalname} uploaded`,
+      fileId: dbFile.id,
+    });
+
+    await this.documentsProducer.addDocumentJob({
       id: dbFile.id,
       userId,
       mimeType: dbFile.mimeType,

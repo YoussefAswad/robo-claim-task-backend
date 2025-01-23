@@ -4,8 +4,9 @@ import { RefreshTokenGuard } from 'src/common/guards/refresh-token.guard';
 import { AuthService } from './auth.service';
 import { AuthDto } from './dto/auth.dto';
 import { CreateUserDto } from './dto/create-user.dto';
-import { ApiOkResponse } from '@nestjs/swagger';
+import { ApiBody, ApiOkResponse } from '@nestjs/swagger';
 import { TokenResponseDto } from './dto/token-response.dto';
+import { UserDto } from './dto/user.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -25,12 +26,16 @@ export class AuthController {
     description: 'User logged in successfully',
     type: TokenResponseDto,
   })
-  signin(@Body() data: AuthDto) {
-    return this.authService.signIn(data);
+  @ApiBody({
+    type: AuthDto,
+  })
+  async signin(@Body() data: AuthDto) {
+    console.log('data', data);
+    return await this.authService.signIn(data);
   }
 
   @UseGuards(RefreshTokenGuard)
-  @Get('logout')
+  @Post('logout')
   @ApiOkResponse({
     description: 'User logged out successfully',
   })
@@ -49,5 +54,15 @@ export class AuthController {
     const userId = req.user['sub'];
     const refreshToken = req.user['refreshToken'];
     return this.authService.refreshToken(userId, refreshToken);
+  }
+
+  @UseGuards(RefreshTokenGuard)
+  @Get('profile')
+  @ApiOkResponse({
+    type: UserDto,
+  })
+  profile(@Req() req: Request) {
+    const userId = req.user['sub'];
+    return this.authService.getProfile(userId);
   }
 }

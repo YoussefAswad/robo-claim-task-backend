@@ -10,6 +10,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UserRepositoryService } from 'src/database/user-repository/user-repository.service';
 import { RefreshTokenRepositoryService } from 'src/database/refresh-token-repository/refresh-token-repository.service';
 import { Environment } from 'src/common/constants/environment';
+import { LogsRepositoryService } from 'src/database/logs-repository/logs-repository.service';
 
 @Injectable()
 export class AuthService {
@@ -17,6 +18,7 @@ export class AuthService {
     private jwtService: JwtService,
     private userRepository: UserRepositoryService,
     private refreshTokenRepository: RefreshTokenRepositoryService,
+    private logsRepository: LogsRepositoryService,
   ) {}
   async register(createUserDto: CreateUserDto): Promise<any> {
     // Check if user exists
@@ -36,6 +38,10 @@ export class AuthService {
       ...createUserDto,
       password: hash,
     });
+    await this.logsRepository.info({
+      userId: newUser.id,
+      action: 'User registered',
+    });
     const tokens = await this.getTokens(newUser.id, newUser.email);
     await this.createRefreshToken(newUser.id, tokens.refreshToken);
     return tokens;
@@ -46,9 +52,20 @@ export class AuthService {
     const user = await this.userRepository.findOne({ email: data.email });
     if (!user) throw new BadRequestException('User does not exist');
     const passwordMatches = await argon2.verify(user.password, data.password);
-    if (!passwordMatches)
-      throw new BadRequestException('Password is incorrect');
+    if (!passwordMatches) {
+      await this.logsRepository.warning({
+        userId: user.id,
+        action: 'User login failed',
+      });
+      throw new BadRequestException('Invalid credentials');
+    }
     const tokens = await this.getTokens(user.id, user.email);
+
+    await this.logsRepository.info({
+      userId: user.id,
+      action: 'User logged in',
+    });
+
     await this.createRefreshToken(user.id, tokens.refreshToken);
     return tokens;
   }
@@ -64,6 +81,10 @@ export class AuthService {
       );
       if (refreshTokenMatches) {
         await this.refreshTokenRepository.delete(userId, token.token);
+        await this.logsRepository.info({
+          userId,
+          action: 'User logged out',
+        });
         return;
       }
     }
@@ -81,7 +102,13 @@ export class AuthService {
 
     const refreshTokenMatches = refreshTokensStatus.some((status) => status);
 
-    if (!refreshTokenMatches) throw new ForbiddenException('Access Denied');
+    if (!refreshTokenMatches) {
+      await this.logsRepository.error({
+        userId,
+        action: 'Refresh token invalid',
+      });
+      throw new ForbiddenException('Access Denied');
+    }
     const tokens = {
       accessToken: await this.getAccessToken(user.id, user.email),
       refreshToken: refreshToken,
@@ -160,5 +187,13 @@ export class AuthService {
         expiresIn: `${Environment.JWT_REFRESH_EXPIRATION_TIME_IN_DAYS}d`,
       },
     );
+  }
+
+  async getProfile(userId: number) {
+    await this.logsRepository.info({
+      userId,
+      action: 'User profile accessed',
+    });
+    return this.userRepository.findOne({ id: userId });
   }
 }

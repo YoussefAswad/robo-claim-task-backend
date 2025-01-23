@@ -14,6 +14,7 @@ import { Environment } from 'src/common/constants/environment';
 import { AccessTokenGuard } from 'src/common/guards/access-token.guard';
 import { UploadService } from './upload.service';
 import { Request } from 'express';
+import { ApiBody, ApiConsumes } from '@nestjs/swagger';
 
 @Controller('upload')
 export class UploadController {
@@ -21,6 +22,21 @@ export class UploadController {
 
   @UseGuards(AccessTokenGuard)
   @Post()
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        files: {
+          type: 'array',
+          items: {
+            type: 'string',
+            format: 'binary',
+          },
+        },
+      },
+    },
+  })
   @UseInterceptors(FilesInterceptor('files'))
   async upload(
     @UploadedFiles(

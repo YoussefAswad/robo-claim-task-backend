@@ -11,10 +11,11 @@ import { AccessTokenGuard } from 'src/common/guards/access-token.guard';
 import { Request } from 'express';
 import { FilesService } from './files.service';
 import { UUIDParam } from 'src/common/validators/uuid-param.validator';
-import { ApiOkResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { ApiOkResponse, ApiParam } from '@nestjs/swagger';
 import { QueryFilesDto } from './dtos/query-files.dto';
 import { QueryFilesResponseDto } from './dtos/query-files-reponse.dto';
 import { FileDto } from './dtos/file.dto';
+import { FileSummaryDto } from './dtos/file-summary.dto';
 
 @Controller('files')
 export class FilesController {
@@ -27,6 +28,15 @@ export class FilesController {
   @Get()
   readMany(@Req() reqeust: Request, @Query() query: QueryFilesDto) {
     return this.filesService.readMany(reqeust.user['sub'], query);
+  }
+
+  @UseGuards(AccessTokenGuard)
+  @Get('summary')
+  @ApiOkResponse({
+    type: FileSummaryDto,
+  })
+  stats(@Req() reqeust: Request) {
+    return this.filesService.getSummary(reqeust.user['sub']);
   }
 
   @UseGuards(AccessTokenGuard)

@@ -8,7 +8,6 @@ import {
 } from '@nestjs/websockets';
 import { Socket } from 'dgram';
 import { Server } from 'socket.io';
-import { FileRepositoryService } from 'src/database/file-repository/file-repository.service';
 import { DocumentsProducer } from '../background-jobs/documents/documents.producer';
 
 @WebSocketGateway({
@@ -18,7 +17,6 @@ import { DocumentsProducer } from '../background-jobs/documents/documents.produc
 })
 export class ProgressGateway {
   @WebSocketServer() server: Server;
-  @Inject() private readonly fileRepositoryService: FileRepositoryService;
   @Inject() private readonly documentsProducer: DocumentsProducer;
 
   @SubscribeMessage('progress')

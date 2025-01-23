@@ -35,4 +35,12 @@ export class UserRepositoryService {
   async create(user: DeepPartial<UserEntity>): Promise<UserEntity> {
     return this.userRepository.save(user);
   }
+
+  async isAdmin(userId: number): Promise<boolean> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['isAdmin'],
+    });
+    return user.isAdmin;
+  }
 }

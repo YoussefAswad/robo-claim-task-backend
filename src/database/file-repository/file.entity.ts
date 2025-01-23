@@ -1,6 +1,13 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  OneToMany,
+} from 'typeorm';
 import { UserEntity } from '../user-repository/user.entity';
 import { FileStatus } from './types/file-status.type';
+import { LogEntity } from '../logs-repository/logs.entity';
 
 @Entity('files')
 export class FileEntity {
@@ -40,4 +47,10 @@ export class FileEntity {
 
   @Column({ type: 'jsonb', nullable: true })
   data: any;
+
+  @Column({ type: 'text', nullable: true })
+  dataSnippet: string | null;
+
+  @OneToMany(() => LogEntity, (log) => log.file)
+  logs: LogEntity[];
 }

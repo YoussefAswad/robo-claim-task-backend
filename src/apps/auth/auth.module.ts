@@ -7,6 +7,7 @@ import { RefreshTokenStrategy } from './strategies/refreshToken.strategy';
 import { Environment } from 'src/common/constants/environment';
 import { UserRepositoryModule } from 'src/database/user-repository/user-repository.module';
 import { RefreshTokenRepositoryModule } from 'src/database/refresh-token-repository/refresh-token-repository.module';
+import { LogsRepositoryModule } from 'src/database/logs-repository/logs-repository.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { RefreshTokenRepositoryModule } from 'src/database/refresh-token-reposit
     }),
     UserRepositoryModule,
     RefreshTokenRepositoryModule,
+    LogsRepositoryModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, AccessTokenStrategy, RefreshTokenStrategy],
