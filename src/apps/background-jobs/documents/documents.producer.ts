@@ -30,9 +30,10 @@ export class DocumentsProducer {
 
   async getJobsProgress(userId: number) {
     const jobs = await this.documentsQueue.getJobs(['waiting', 'active']);
+    console.log(jobs);
 
     return jobs
-      .filter((job) => job.data.userId === userId)
+      .filter((job) => job.data.userId === +userId)
       .map((job) =>
         job.progress
           ? job.progress

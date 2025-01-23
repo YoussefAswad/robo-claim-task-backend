@@ -17,11 +17,11 @@ export class DocumentsListiner extends QueueEventsHost {
     // await this.filesRepository.changeStatus(job.data.id, 'failed');
   }
 
-  @OnQueueEvent('completed')
-  async onCompleted(job: Job<DocumentData, DocumentData, string>) {
-    console.log('Completed', job);
-    await this.filesRepository.changeStatus(job.returnvalue.id, 'completed');
-  }
+  // @OnQueueEvent('completed')
+  // async onCompleted(job: Job<DocumentData, DocumentData, string>) {
+  //   console.log('Completed', job);
+  //   await this.filesRepository.changeStatus(job.returnvalue.id, 'completed');
+  // }
 
   @OnQueueEvent('progress')
   async onProgress(job: Job<DocumentData, any, string>) {

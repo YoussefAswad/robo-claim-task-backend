@@ -29,7 +29,7 @@ export class ProgressGateway {
       jobProgress = await this.documentsProducer.getJobsProgress(userId);
       console.log(jobProgress);
       client.emit('progress', jobProgress);
-      await new Promise((resolve) => setTimeout(resolve, 5000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     } while (true);
   }
 }

@@ -34,9 +34,6 @@ export class DocumentConsumer extends WorkerHost {
 
       await this.filesRepository.changeStatus(job.data.id, 'processing');
 
-      // simulate processing time 1 minute
-      // await new Promise((resolve) => setTimeout(resolve, 60000));
-
       const fileStream = await this.storage.getDisk().getBuffer(job.data.id);
 
       let data: any;
@@ -56,6 +53,12 @@ export class DocumentConsumer extends WorkerHost {
       }
 
       await this.filesRepository.addData(job.data.id, data);
+      await this.filesRepository.changeStatus(job.data.id, 'completed');
+      await job.updateProgress({
+        progress: 100,
+        stage: 'Finished processing',
+        fileId: job.data.id,
+      });
 
       return job.data;
     } catch (e) {
@@ -87,11 +90,6 @@ export class DocumentConsumer extends WorkerHost {
       fileId: job.data.id,
     });
 
-    await job.updateProgress({
-      progress: 100,
-      stage: 'Finished processing',
-      fileId: job.data.id,
-    });
     return data;
   }
 
@@ -112,6 +110,7 @@ export class DocumentConsumer extends WorkerHost {
 
     const data = [];
 
+    let sheetNumber = 0;
     for (const sheetName of workbook.SheetNames) {
       const sheet = workbook.Sheets[sheetName];
       const sheetData = XLSX.utils.sheet_to_json(sheet);
@@ -123,24 +122,18 @@ export class DocumentConsumer extends WorkerHost {
         fileId: job.data.id,
       });
 
-      const progress =
-        ((data.length + 1) / workbook.SheetNames.length) * 100 - 10;
+      const progress = (sheetNumber / workbook.SheetNames.length) * 100 - 10;
       await job.updateProgress({
         progress,
         stage: `Processing sheet ${sheetName}, remaining ${workbook.SheetNames.length - data.length}`,
         fileId: job.data.id,
       });
+      sheetNumber++;
     }
 
     await this.logsRepository.info({
       userId: job.data.userId,
       action: `Document ${job.data.id} processed all sheets`,
-      fileId: job.data.id,
-    });
-
-    await job.updateProgress({
-      progress: 100,
-      stage: 'Finished processing',
       fileId: job.data.id,
     });
 
@@ -204,11 +197,6 @@ export class DocumentConsumer extends WorkerHost {
       fileId: job.data.id,
     });
 
-    await job.updateProgress({
-      progress: 100,
-      stage: 'Finished processing',
-      fileId: job.data.id,
-    });
     return data;
   }
 }

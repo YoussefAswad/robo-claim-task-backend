@@ -5,7 +5,9 @@ import {
   Param,
   Query,
   Req,
+  Sse,
   UseGuards,
+  MessageEvent,
 } from '@nestjs/common';
 import { AccessTokenGuard } from 'src/common/guards/access-token.guard';
 import { Request } from 'express';
@@ -16,10 +18,15 @@ import { QueryFilesDto } from './dtos/query-files.dto';
 import { QueryFilesResponseDto } from './dtos/query-files-reponse.dto';
 import { FileDto } from './dtos/file.dto';
 import { FileSummaryDto } from './dtos/file-summary.dto';
+import { interval, map, Observable, switchMap } from 'rxjs';
+import { DocumentsProducer } from '../background-jobs/documents/documents.producer';
 
 @Controller('files')
 export class FilesController {
-  constructor(private filesService: FilesService) {}
+  constructor(
+    private filesService: FilesService,
+    private readonly documentsProducer: DocumentsProducer,
+  ) {}
 
   @ApiOkResponse({
     type: QueryFilesResponseDto,
@@ -28,6 +35,23 @@ export class FilesController {
   @Get()
   readMany(@Req() reqeust: Request, @Query() query: QueryFilesDto) {
     return this.filesService.readMany(reqeust.user['sub'], query);
+  }
+
+  @Sse('progress/:id')
+  sse(@Param() { id }: { id: number }): Observable<MessageEvent> {
+    return interval(1000).pipe(
+      switchMap(async () => {
+        // Replace 'reqeust.user["sub"]' with the correct user identification logic.
+        const progress = await this.documentsProducer.getJobsProgress(id);
+        console.log(progress);
+        return { data: progress };
+      }),
+      map((data, index) => ({
+        data,
+        id: index.toString(),
+        type: 'progress',
+      })),
+    );
   }
 
   @UseGuards(AccessTokenGuard)
