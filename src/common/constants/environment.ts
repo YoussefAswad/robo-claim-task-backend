@@ -7,6 +7,9 @@ export class Environment {
   @EnvironmentVariable('PORT', '3000')
   public static PORT: string;
 
+  @EnvironmentVariable('FRONTEND_URL')
+  public static FRONTEND_URL: string;
+
   @EnvironmentVariable('JWT_SECRET')
   public static JWT_SECRET: string;
 
