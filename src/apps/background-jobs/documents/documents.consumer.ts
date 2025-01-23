@@ -28,7 +28,6 @@ export class DocumentConsumer extends WorkerHost {
     });
 
     // wait for 5 seconds
-    await new Promise((resolve) => setTimeout(resolve, 5000));
 
     try {
       console.log('Processing document', job.data);
@@ -38,7 +37,6 @@ export class DocumentConsumer extends WorkerHost {
       await this.filesRepository.changeStatus(job.data.id, 'processing');
 
       // simulate processing time 1 minute
-      // await new Promise((resolve) => setTimeout(resolve, 60000));
 
       const fileStream = await this.storage.getDisk().getBuffer(job.data.id);
 
@@ -97,7 +95,6 @@ export class DocumentConsumer extends WorkerHost {
       fileId: job.data.id,
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 5000));
     return data;
   }
 
@@ -137,7 +134,6 @@ export class DocumentConsumer extends WorkerHost {
         fileId: job.data.id,
       });
       sheetNumber++;
-      await new Promise((resolve) => setTimeout(resolve, 5000));
     }
 
     await this.logsRepository.info({
@@ -146,7 +142,6 @@ export class DocumentConsumer extends WorkerHost {
       fileId: job.data.id,
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 5000));
 
     return data;
   }
@@ -200,7 +195,6 @@ export class DocumentConsumer extends WorkerHost {
         stage: `Processing page ${i + 1} of ${pageCount}`,
         fileId: job.data.id,
       });
-      await new Promise((resolve) => setTimeout(resolve, 5000));
     }
 
     await this.logsRepository.info({
@@ -209,7 +203,6 @@ export class DocumentConsumer extends WorkerHost {
       fileId: job.data.id,
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 5000));
     return data;
   }
 }
